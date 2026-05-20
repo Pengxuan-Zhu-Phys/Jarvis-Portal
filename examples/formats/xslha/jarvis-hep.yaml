@@ -1,0 +1,29 @@
+# Jarvis-HEP-facing calculator IO example.
+Calculators:
+  make_paraller: 1
+  Modules:
+    - name: XslhaExample
+      required_modules: []
+      clone_shadow: false
+      installation: []
+      initialization: []
+      execution:
+        path: "&J/calculators/xslha_example"
+        commands:
+          - "run_xslha_calculator output.xslha"
+        input: []
+        output:
+          - name: xslha_output
+            path: "output.xslha"
+            type: xSLHA
+            save: false
+            variables:
+              - name: mh
+                block: MASS
+                entry: 25
+              - name: h_width_1l
+                block: DECAY1L
+                entry: 25
+              - name: h_to_bb
+                block: DECAY
+                entry: [25, 5, -5]

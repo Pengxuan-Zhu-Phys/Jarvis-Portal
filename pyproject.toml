@@ -23,7 +23,9 @@ classifiers = [
   "Programming Language :: Python :: 3.13",
   "Topic :: Scientific/Engineering :: Physics",
 ]
-dependencies = []
+dependencies = [
+  "PyYAML>=6.0",
+]
 
 [project.optional-dependencies]
 slha = [
@@ -48,6 +50,9 @@ json = "jarvis_portal.adapters.json:JsonAdapter"
 file = "jarvis_portal.adapters.file:FileAdapter"
 slha = "jarvis_portal.adapters.slha:SLHAAdapter"
 xslha = "jarvis_portal.adapters.xslha:XSLHAAdapter"
+
+[project.scripts]
+jportal = "jarvis_portal.cli:main"
 
 [project.urls]
 Homepage = "https://github.com/Pengxuan-Zhu-Phys/Jarvis-Portal"

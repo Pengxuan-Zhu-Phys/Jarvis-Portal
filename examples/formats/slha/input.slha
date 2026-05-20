@@ -1,0 +1,6 @@
+BLOCK MINPAR
+    1    0.00000000E+00   # m0
+    2    0.00000000E+00   # m12
+    3    @TB@             # tanbeta placeholder
+BLOCK MASS
+   25    1.25000000E+02   # h0

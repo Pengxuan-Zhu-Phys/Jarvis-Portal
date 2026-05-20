@@ -1,0 +1,19 @@
+# Direct Jarvis-Portal adapter spec example.
+# Values are already resolved by the caller.
+write_input:
+  path: "input.json"
+  operations:
+    - name: x
+      value: 1.0
+    - name: y
+      value: 2.0
+    - name: mass
+      entry: "model.mass"
+      value: 2.0
+
+read_output:
+  path: "output.json"
+  variables:
+    - name: z
+    - name: likelihood
+      entry: "fit.loglike"

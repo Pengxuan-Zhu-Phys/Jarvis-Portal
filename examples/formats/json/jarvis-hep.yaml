@@ -1,0 +1,36 @@
+# Jarvis-HEP-facing calculator IO example.
+# Jarvis-HEP parses this shape and translates it into Jarvis-Portal adapter specs.
+Calculators:
+  make_paraller: 1
+  Modules:
+    - name: JsonExample
+      required_modules: []
+      clone_shadow: false
+      installation: []
+      initialization: []
+      execution:
+        path: "&J/calculators/json_example"
+        commands:
+          - "python run_json_example.py"
+        input:
+          - name: params
+            path: "input.json"
+            type: JSON
+            save: true
+            actions:
+              - type: Dump
+                variables:
+                  - name: x
+                  - name: y
+                  - name: mass
+                    entry: "model.mass"
+                    expression: "x * 2"
+        output:
+          - name: observables
+            path: "output.json"
+            type: JSON
+            save: false
+            variables:
+              - name: z
+              - name: likelihood
+                entry: "fit.loglike"

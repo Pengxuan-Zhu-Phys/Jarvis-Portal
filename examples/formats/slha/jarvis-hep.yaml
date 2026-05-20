@@ -1,0 +1,44 @@
+# Jarvis-HEP-facing calculator IO example.
+Calculators:
+  make_paraller: 1
+  Modules:
+    - name: SlhaExample
+      required_modules: []
+      clone_shadow: false
+      installation: []
+      initialization: []
+      execution:
+        path: "&J/calculators/slha_example"
+        commands:
+          - "run_spectrum_generator input.slha output.slha"
+        input:
+          - name: slha_input
+            path: "input.slha"
+            type: SLHA
+            save: true
+            actions:
+              - type: Replace
+                variables:
+                  - name: tanbeta
+                    placeholder: "@TB@"
+                    expression: "tb"
+              - type: SLHA
+                variables:
+                  - name: m0
+                    block: MINPAR
+                    entry: 1
+                  - name: m12
+                    block: MINPAR
+                    entry: 2
+        output:
+          - name: slha_output
+            path: "output.slha"
+            type: SLHA
+            save: false
+            variables:
+              - name: mh
+                block: MASS
+                entry: 25
+              - name: h_width
+                block: DECAY
+                entry: 25

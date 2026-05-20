@@ -1,0 +1,290 @@
+#!/usr/bin/env bash
+
+_jptrel_SRC="$0"
+if [[ -n "${BASH_VERSION:-}" ]]; then
+  _jptrel_SRC="${BASH_SOURCE[0]}"
+elif [[ -n "${ZSH_VERSION:-}" ]]; then
+  _jptrel_SRC="$(eval 'echo ${(%):-%x}')"
+fi
+
+_jptrel_DIR="$(cd "$(dirname "$_jptrel_SRC")" && pwd)"
+
+_jptrel_usage() {
+  cat <<'EOF'
+Usage:
+  jptrel <version>
+
+Examples:
+  source ./jptrel
+  jptrel 0.1.1
+
+Notes:
+  jptrel publishes Jarvis-Portal to PyPI, refreshes the local editable install
+  (pip install -e .), and verifies the installed package and built-in adapters.
+EOF
+}
+
+_jptrel_install_editable() {
+  python3 -m pip uninstall -y Jarvis-Portal jarvis-portal jarvis_portal >/dev/null 2>&1 || true
+
+  # Defensive cleanup for stale metadata from previous local installs.
+  # Multiple leftover dist-info folders can make importlib.metadata report an
+  # older version after a release reinstall.
+  python3 - <<'PY'
+from __future__ import annotations
+import glob
+import os
+import shutil
+import sysconfig
+
+purelib = sysconfig.get_paths().get("purelib", "")
+if purelib and os.path.isdir(purelib):
+    patterns = [
+        "jarvis_portal-*.dist-info",
+        "Jarvis_Portal-*.dist-info",
+        "jarvis_portal*.egg-info",
+        "Jarvis_Portal*.egg-info",
+        "jarvis_portal*.egg-link",
+        "Jarvis_Portal*.egg-link",
+    ]
+    for pat in patterns:
+        for path in glob.glob(os.path.join(purelib, pat)):
+            if os.path.isdir(path):
+                shutil.rmtree(path, ignore_errors=True)
+            else:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
+
+    installed_pkg = os.path.join(purelib, "jarvis_portal")
+    if os.path.isdir(installed_pkg):
+        shutil.rmtree(installed_pkg, ignore_errors=True)
+PY
+
+  python3 -m pip install --no-deps --force-reinstall -e .
+}
+
+_jptrel_prune_installed_metadata() {
+  python3 - <<'PY'
+from __future__ import annotations
+import glob
+import os
+import re
+import shutil
+import sysconfig
+
+purelib = sysconfig.get_paths().get("purelib", "")
+if not purelib or not os.path.isdir(purelib):
+    raise SystemExit(0)
+
+dist_infos = []
+for pat in ("jarvis_portal-*.dist-info", "Jarvis_Portal-*.dist-info"):
+    for path in glob.glob(os.path.join(purelib, pat)):
+        base = os.path.basename(path)
+        m = re.search(r"-(\d+(?:\.\d+)*)\.dist-info$", base)
+        if m:
+            version_tuple = tuple(int(x) for x in m.group(1).split("."))
+        else:
+            version_tuple = (-1,)
+        dist_infos.append((version_tuple, path))
+
+dist_infos.sort(key=lambda item: item[0], reverse=True)
+for _ver, stale_path in dist_infos[1:]:
+    shutil.rmtree(stale_path, ignore_errors=True)
+
+for pat in (
+    "jarvis_portal*.egg-info",
+    "Jarvis_Portal*.egg-info",
+    "jarvis_portal*.egg-link",
+    "Jarvis_Portal*.egg-link",
+):
+    for path in glob.glob(os.path.join(purelib, pat)):
+        if os.path.isdir(path):
+            shutil.rmtree(path, ignore_errors=True)
+        else:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+PY
+}
+
+_jptrel_clean_artifacts() {
+  python3 - <<'PY'
+from __future__ import annotations
+import glob
+import os
+import shutil
+
+for path in ("dist", "build"):
+    if os.path.isdir(path):
+        shutil.rmtree(path, ignore_errors=True)
+for pattern in ("*.egg-info", "src/*.egg-info"):
+    for matched in glob.glob(pattern):
+        if os.path.isdir(matched):
+            shutil.rmtree(matched, ignore_errors=True)
+PY
+}
+
+_jptrel_bump_version() {
+  local version="$1"
+  python3 - <<'PY' "$version"
+from pathlib import Path
+import re
+import sys
+
+version = sys.argv[1]
+
+pyproject = Path("pyproject.toml")
+text = pyproject.read_text(encoding="utf-8")
+updated, n = re.subn(
+    r'(?m)^version\s*=\s*"[^"]+"$',
+    f'version = "{version}"',
+    text,
+    count=1,
+)
+if n != 1:
+    raise SystemExit("[jptrel] Failed to locate version field in pyproject.toml")
+pyproject.write_text(updated, encoding="utf-8")
+print(f"[jptrel] pyproject.toml updated to {version}")
+
+version_file = Path("src/jarvis_portal/_version.py")
+text = version_file.read_text(encoding="utf-8")
+updated, n = re.subn(
+    r'(?m)^__version__\s*=\s*"[^"]+"$',
+    f'__version__ = "{version}"',
+    text,
+    count=1,
+)
+if n != 1:
+    raise SystemExit("[jptrel] Failed to locate __version__ in src/jarvis_portal/_version.py")
+version_file.write_text(updated, encoding="utf-8")
+print(f"[jptrel] src/jarvis_portal/_version.py updated to {version}")
+PY
+}
+
+_jptrel_verify_install() {
+  python3 - <<'PY'
+import importlib.metadata as m
+from shutil import which
+
+import jarvis_portal
+from jarvis_portal import create_default_registry
+
+print("[jptrel] installed version:", m.version("Jarvis-Portal"))
+print("[jptrel] runtime version:", jarvis_portal.__version__)
+print("[jptrel] jportal command:", which("jportal"))
+print("[jptrel] input formats:", ", ".join(create_default_registry().available_formats("input")))
+print("[jptrel] output formats:", ", ".join(create_default_registry().available_formats("output")))
+
+# Show all discovered Jarvis-Portal distributions to catch metadata duplication.
+matches = []
+for d in m.distributions():
+    name = (d.metadata.get("Name") or "").lower()
+    if name in {"jarvis-portal", "jarvis_portal"}:
+        matches.append((d.metadata.get("Name"), d.version, str(d.locate_file(""))))
+
+if matches:
+    print("[jptrel] discovered Jarvis-Portal distributions:")
+    for name, version, loc in matches:
+        print(f"  - {name} {version} @ {loc}")
+PY
+
+  # Refresh shell command hash tables after pip install (zsh/bash).
+  hash -r 2>/dev/null || true
+  rehash 2>/dev/null || true
+
+  local cli_cmd
+  cli_cmd="$(command -v jportal 2>/dev/null || true)"
+  if [[ -z "$cli_cmd" ]]; then
+    cli_cmd="$(python3 - <<'PY'
+from shutil import which
+print(which("jportal") or "")
+PY
+)"
+  fi
+
+  if [[ -z "$cli_cmd" ]]; then
+    echo "[jptrel] WARNING: jportal CLI not found in PATH after reinstall; skip CLI --version check." >&2
+    return 0
+  fi
+
+  "$cli_cmd" --version >/dev/null
+  echo "[jptrel] CLI --version check passed: $cli_cmd"
+}
+
+jptrel() {
+  (
+    set -euo pipefail
+
+    if [[ $# -eq 1 && ( "$1" == "-h" || "$1" == "--help" ) ]]; then
+      _jptrel_usage
+      exit 0
+    fi
+
+    if [[ $# -lt 1 ]]; then
+      _jptrel_usage
+      exit 2
+    fi
+
+    local version="$1"; shift || true
+    if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      echo "[jptrel] Invalid version: $version (expected X.Y.Z)" >&2
+      exit 2
+    fi
+
+    if [[ $# -gt 0 ]]; then
+      echo "[jptrel] jptrel accepts only a version argument." >&2
+      _jptrel_usage
+      exit 2
+    fi
+
+    cd "$_jptrel_DIR"
+    if [[ ! -f "pyproject.toml" ]]; then
+      echo "[jptrel] pyproject.toml not found in $_jptrel_DIR" >&2
+      exit 2
+    fi
+
+    echo "[jptrel] Release target version: $version"
+    echo "[jptrel] Repository: pypi"
+    echo "[jptrel] Working directory: $(pwd)"
+    echo "[jptrel] Python: $(python3 -V 2>/dev/null || true)"
+
+    echo "[jptrel] Step 1/5: bump version"
+    _jptrel_bump_version "$version"
+
+    echo "[jptrel] Step 2/5: clean build artifacts"
+    _jptrel_clean_artifacts
+    _jptrel_prune_installed_metadata
+
+    echo "[jptrel] Step 3/5: build package"
+    python3 -m pip install --disable-pip-version-check -q -U build twine
+    python3 -m build
+    python3 -m twine check dist/*
+
+    echo "[jptrel] Step 4/5: upload"
+    python3 -m twine upload -r pypi dist/*
+
+    echo "[jptrel] Step 5/5: local editable install/verify"
+    _jptrel_install_editable
+    _jptrel_verify_install
+
+    echo "[jptrel] Done."
+  )
+}
+
+_jptrel_sourced=0
+if [[ -n "${BASH_VERSION:-}" ]]; then
+  [[ "${BASH_SOURCE[0]}" != "$0" ]] && _jptrel_sourced=1
+elif [[ -n "${ZSH_VERSION:-}" ]]; then
+  case "${ZSH_EVAL_CONTEXT:-}" in
+    *:file) _jptrel_sourced=1 ;;
+  esac
+fi
+
+if [[ "$_jptrel_sourced" -eq 0 ]]; then
+  echo "This file defines the 'jptrel' bash function. Please source it first:" >&2
+  echo "  source \"$0\"" >&2
+  exit 1
+fi

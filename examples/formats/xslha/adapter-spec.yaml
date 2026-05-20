@@ -1,0 +1,17 @@
+# Direct Jarvis-Portal adapter spec example.
+read_output:
+  path: "output.xslha"
+  variables:
+    - name: mh
+      block: MASS
+      entry: 25
+    - name: h_width_1l
+      block: DECAY1L
+      entry: 25
+    - name: h_to_bb
+      block: DECAY
+      entry: [25, 5, -5]
+
+write_input:
+  supported: false
+  reason: "xSLHA input writing is not currently supported."

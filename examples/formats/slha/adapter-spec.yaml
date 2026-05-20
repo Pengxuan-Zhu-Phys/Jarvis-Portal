@@ -1,0 +1,27 @@
+# Direct Jarvis-Portal adapter spec example.
+# Values are already resolved by the caller.
+write_input:
+  path: "input.slha"
+  operations:
+    - op: replace_text
+      name: tanbeta
+      placeholder: "@TB@"
+      value: 10.0
+    - name: m0
+      block: MINPAR
+      entry: 1
+      value: 1000.0
+    - name: m12
+      block: MINPAR
+      entry: 2
+      value: 1200.0
+
+read_output:
+  path: "output.slha"
+  variables:
+    - name: mh
+      block: MASS
+      entry: 25
+    - name: h_width
+      block: DECAY
+      entry: 25
