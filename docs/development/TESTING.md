@@ -6,7 +6,6 @@ Current test files cover:
 
 - registry registration, lookup, duplicate handling, and missing adapter errors
 - JSON nested write/read behavior
-- plain File adapter write/read behavior
 - CLI YAML parsing, output rendering, version output, and error handling
 
 ## Running Tests
@@ -23,11 +22,7 @@ Run a single file:
 python -m pytest tests/test_json_adapter.py
 ```
 
-Run a single test:
-
-```bash
-python -m pytest tests/test_file_adapter.py::test_file_adapter_can_write_and_read_text
-```
+Run a single test with `path::test_name` when needed.
 
 ## Unit Test Structure
 
@@ -36,7 +31,6 @@ Prefer one focused test file per adapter:
 ```text
 tests/test_registry.py
 tests/test_json_adapter.py
-tests/test_file_adapter.py
 tests/test_cli.py
 tests/test_slha_adapter.py
 tests/test_xslha_adapter.py

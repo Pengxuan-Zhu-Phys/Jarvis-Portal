@@ -58,5 +58,5 @@ def _import_xslha():
     try:
         import xslha
     except ImportError as exc:
-        raise ImportError("xSLHA support requires `pip install Jarvis-Portal[xslha]`.") from exc
+        raise ImportError("xSLHA support requires `pip install Jarvis-HEP-Portal[xslha]`.") from exc
     return xslha

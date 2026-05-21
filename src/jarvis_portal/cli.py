@@ -1,54 +1,46 @@
 from __future__ import annotations
 
-import argparse
+import ast
 import json
-import pprint
+import math
+import operator
 import sys
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 import yaml
 
-from jarvis_portal import __version__, create_default_registry
+from jarvis_portal import IOContext, __version__, create_default_registry
+
+DIM = "\033[2m"
+RESET = "\033[0m"
+CDOT = "·"
 
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        prog="jportal",
-        description="Jarvis-Portal YAML inspection and IO adapter utility.",
+def render_help() -> str:
+    return "\n".join(
+        [
+            "usage:",
+            "  jportal file",
+            "  jportal man",
+            "  jportal -h",
+            "  jportal -v",
+            "",
+            "positional arguments:",
+            "  file  run a YAML file and print observables",
+            "  man   show the manual; use 'jportal man' for format topics",
+            "",
+            "options:",
+            "  -h, --help     show this help message and exit",
+            "  -v, --version  print Jarvis-Portal version and exit",
+        ]
     )
-    parser.add_argument(
-        "file",
-        nargs="?",
-        help="path to a YAML input file",
-    )
-    parser.add_argument(
-        "-v",
-        "--version",
-        action="store_true",
-        help="print Jarvis-Portal version and exit",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        help="write the parsed dictionary to a file instead of stdout",
-    )
-    parser.add_argument(
-        "--json",
-        action="store_true",
-        help="emit JSON instead of Python dictionary syntax",
-    )
-    parser.add_argument(
-        "--compact",
-        action="store_true",
-        help="emit compact JSON; only valid with --json",
-    )
-    parser.add_argument(
-        "--formats",
-        action="store_true",
-        help="list registered built-in adapter formats and exit",
-    )
-    return parser
+
+
+def _print_usage_error(message: str) -> int:
+    print(f"jportal: error: {message}", file=sys.stderr)
+    print("usage: jportal file | jportal man | jportal -h | jportal -v", file=sys.stderr)
+    return 2
 
 
 def load_yaml_dict(path: str | Path) -> dict[str, Any]:
@@ -68,49 +60,296 @@ def load_yaml_dict(path: str | Path) -> dict[str, Any]:
     return payload
 
 
-def render_mapping(payload: dict[str, Any], *, as_json: bool = False, compact: bool = False) -> str:
-    if as_json:
-        if compact:
-            return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
-        return json.dumps(payload, ensure_ascii=False, indent=2)
-    return pprint.pformat(payload, sort_dicts=False)
+def render_observables(observables: dict[str, Any]) -> str:
+    return json.dumps(observables, ensure_ascii=False, indent=2)
 
 
-def render_formats() -> str:
+def evaluate_runtime_expression(expression: str, values: Mapping[str, Any]) -> Any:
+    names = {"Pi": math.pi, "pi": math.pi, "PI": math.pi, **dict(values)}
+    node = ast.parse(expression, mode="eval")
+    return _eval_expression_node(node.body, names)
+
+
+def _eval_expression_node(node: ast.AST, names: Mapping[str, Any]) -> Any:
+    binary_ops = {
+        ast.Add: operator.add,
+        ast.Sub: operator.sub,
+        ast.Mult: operator.mul,
+        ast.Div: operator.truediv,
+        ast.Pow: operator.pow,
+        ast.Mod: operator.mod,
+    }
+    unary_ops = {
+        ast.UAdd: operator.pos,
+        ast.USub: operator.neg,
+    }
+
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+        return node.value
+    if isinstance(node, ast.Name):
+        if node.id not in names:
+            raise ValueError(f"Unknown expression symbol: {node.id}")
+        return names[node.id]
+    if isinstance(node, ast.BinOp) and type(node.op) in binary_ops:
+        return binary_ops[type(node.op)](
+            _eval_expression_node(node.left, names),
+            _eval_expression_node(node.right, names),
+        )
+    if isinstance(node, ast.UnaryOp) and type(node.op) in unary_ops:
+        return unary_ops[type(node.op)](_eval_expression_node(node.operand, names))
+    raise ValueError(f"Unsupported expression syntax: {ast.unparse(node)}")
+
+
+def _cdots(count: int, *, dim: bool) -> str:
+    marker = CDOT * count
+    if dim:
+        return f"{DIM}{marker}{RESET}"
+    return marker
+
+
+def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str:
+    if topic is None:
+        registry = create_default_registry()
+        return "\n".join(
+            [
+                "Jarvis-Portal manual",
+                "",
+                "Supported formats:",
+                f"  input: {', '.join(registry.available_formats('input'))}",
+                f"  output: {', '.join(registry.available_formats('output'))}",
+                "",
+                "Format manuals:",
+                "  json",
+                "",
+                "Usage:",
+                "  jportal file",
+                "  jportal man",
+                "  jportal man json",
+                "  jportal -h",
+                "  jportal -v",
+            ]
+        )
+
+    normalized = str(topic).strip().casefold()
+    if normalized == "json":
+        d1 = _cdots(1, dim=dim_markers)
+        d2 = _cdots(2, dim=dim_markers)
+        d4 = _cdots(4, dim=dim_markers)
+        d6 = _cdots(6, dim=dim_markers)
+        d8 = _cdots(8, dim=dim_markers)
+        d10 = _cdots(10, dim=dim_markers)
+        return "\n".join(
+            [
+                "JSON format manual",
+                "",
+                "YAML shape:",
+                "  ┌─ YAML ─────────────────────────────",
+                "  │ observables:",
+                f"  │ {d2}x: 1.0",
+                f"  │ {d2}y: 2.0",
+                "  │",
+                "  │ input:",
+                f"  │ {d2}- name: params",
+                f"  │ {d4}path: input.json",
+                f"  │ {d4}type: JSON",
+                f"  │ {d4}actions:",
+                f"  │ {d6}- type: Dump",
+                f"  │ {d8}variables:",
+                f"  │ {d10}- {{ name: \"xx\", expression: \"x * Pi\" }}",
+                f"  │ {d10}- {{ name: \"yy\", expression: \"y * Pi\" }}",
+                f"  │ {d10}- {{ name: \"cx\", expression: \"(x + y) * Pi\", entry: \"test.config.x\" }}",
+                "  │",
+                "  │ output:",
+                f"  │ {d2}- name: observables",
+                f"  │ {d4}path: output.json",
+                f"  │ {d4}type: JSON",
+                f"  │ {d4}variables:",
+                f"  │ {d6}- {{ name: \"z\" }}",
+                f"  │ {d6}- {{ name: \"likelihood\", entry: \"fit.loglike\" }}",
+                "  └───────────────────────────────────",
+                "",
+                "Note:",
+                f"  {d1} means one indentation space. Replace {d1} with spaces before use.",
+                "  Top-level observables supplies runtime values for input expressions.",
+                "",
+                "Observables contract:",
+                "  Returns the flat observable dictionary directly.",
+                "  Output variables contribute name: value items.",
+                "  Plain input variables are written to files and do not become observables.",
+                "  Expression input variables return their evaluated name: value items.",
+                "  A file spec name is returned only when save: true.",
+                "  Saved file spec names map to resolved absolute paths.",
+                "",
+                "Screen output:",
+                "  {",
+                '    "xx": 3.141592653589793,',
+                '    "yy": 6.283185307179586,',
+                '    "cx": 9.42477796076938,',
+                '    "z": 42.0,',
+                '    "likelihood": -1.25',
+                "  }",
+            ]
+        )
+
+    raise ValueError(f"Unknown manual topic: {topic}")
+
+
+def _merge_observables(target: dict[str, Any], source: dict[str, Any]) -> None:
+    for name, value in source.items():
+        if name in target:
+            raise ValueError(f"Duplicate observable name: {name}")
+        target[name] = value
+
+
+async def run_adapter_spec(
+    payload: dict[str, Any],
+    *,
+    project_root: Path,
+    runtime_values: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
     registry = create_default_registry()
-    lines = ["Jarvis-Portal adapter formats:"]
-    lines.append(f"  input: {', '.join(registry.available_formats('input'))}")
-    lines.append(f"  output: {', '.join(registry.available_formats('output'))}")
-    return "\n".join(lines)
+    values = dict(runtime_values or {})
+    context = IOContext(
+        project_root=str(project_root.resolve()),
+        evaluate_expression=evaluate_runtime_expression,
+        runtime_values=values,
+    )
+    observables: dict[str, Any] = {}
+    has_specs = False
+
+    for write_spec in _spec_list(payload, "input"):
+        has_specs = True
+        adapter = registry.get(write_spec["type"], "input")
+        _merge_observables(observables, await adapter.write_input(context, write_spec, values))
+
+    for read_spec in _spec_list(payload, "output"):
+        has_specs = True
+        adapter = registry.get(read_spec["type"], "output")
+        _merge_observables(observables, await adapter.read_output(context, read_spec))
+
+    if not has_specs:
+        raise ValueError("YAML must contain input or output.")
+    return observables
+
+
+def run_adapter_spec_sync(
+    payload: dict[str, Any],
+    *,
+    project_root: Path,
+    runtime_values: Mapping[str, Any] | None = None,
+) -> dict[str, Any]:
+    import asyncio
+
+    return asyncio.run(
+        run_adapter_spec(payload, project_root=project_root, runtime_values=runtime_values)
+    )
+
+
+def payload_to_observables(payload: dict[str, Any], *, project_root: Path) -> dict[str, Any]:
+    if "input" in payload or "output" in payload:
+        return run_adapter_spec_sync(
+            payload,
+            project_root=project_root,
+            runtime_values=_runtime_observables(payload),
+        )
+    jarvis_hep_io = extract_jarvis_hep_io(payload)
+    if jarvis_hep_io is not None:
+        return run_adapter_spec_sync(
+            jarvis_hep_io,
+            project_root=project_root,
+            runtime_values=_runtime_observables(payload),
+        )
+    if "observables" in payload:
+        observables = payload["observables"]
+        if not isinstance(observables, dict):
+            raise TypeError("observables must be a mapping.")
+        return observables
+    raise ValueError("YAML must contain observables, input, or output.")
+
+
+def _runtime_observables(payload: dict[str, Any]) -> dict[str, Any]:
+    observables = payload.get("observables")
+    if observables is None:
+        return {}
+    if not isinstance(observables, dict):
+        raise TypeError("observables must be a mapping.")
+    return observables
+
+
+def _spec_list(payload: dict[str, Any], key: str) -> list[dict[str, Any]]:
+    value = payload.get(key)
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise TypeError(f"{key} must be a list of Jarvis-HEP file specs.")
+    for item in value:
+        if not isinstance(item, dict):
+            raise TypeError(f"{key} items must be mappings.")
+    return value
+
+
+def extract_jarvis_hep_io(payload: dict[str, Any]) -> dict[str, list[dict[str, Any]]] | None:
+    calculators = payload.get("Calculators")
+    if not isinstance(calculators, dict):
+        return None
+    modules = calculators.get("Modules")
+    if not isinstance(modules, list):
+        return None
+
+    collected: dict[str, list[dict[str, Any]]] = {"input": [], "output": []}
+    for module in modules:
+        if not isinstance(module, dict):
+            continue
+        execution = module.get("execution")
+        if not isinstance(execution, dict):
+            continue
+        collected["input"].extend(_spec_list(execution, "input"))
+        collected["output"].extend(_spec_list(execution, "output"))
+
+    if collected["input"] or collected["output"]:
+        return collected
+    return None
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    args = list(sys.argv[1:] if argv is None else argv)
 
-    if args.version:
+    if args in (["-h"], ["--help"]):
+        print(render_help())
+        return 0
+
+    if args in (["-v"], ["--version"]):
         print(f"Jarvis-Portal {__version__}")
         return 0
 
-    if args.formats:
-        print(render_formats())
-        return 0
+    if not args:
+        return _print_usage_error("the following arguments are required: file")
 
-    if not args.file:
-        parser.error("the following arguments are required: file")
-
-    if args.compact and not args.json:
-        parser.error("--compact is only valid with --json")
+    if args[0].startswith("-"):
+        return _print_usage_error(f"unrecognized arguments: {' '.join(args)}")
 
     try:
-        payload = load_yaml_dict(args.file)
-        rendered = render_mapping(payload, as_json=args.json, compact=args.compact)
-        if args.output:
-            output_path = Path(args.output).expanduser()
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.write_text(rendered + "\n", encoding="utf-8")
-        else:
-            print(rendered)
+        if args[0] == "man":
+            if len(args) > 2:
+                return _print_usage_error(f"unexpected argument: {' '.join(args[2:])}")
+            print(
+                render_manual(
+                    args[1] if len(args) == 2 else None,
+                    dim_markers=sys.stdout.isatty(),
+                )
+            )
+            return 0
+
+        if len(args) > 1:
+            return _print_usage_error(f"unexpected argument: {' '.join(args[1:])}")
+
+        target = args[0]
+        payload = load_yaml_dict(target)
+        observables = payload_to_observables(
+            payload,
+            project_root=Path(target).expanduser().parent,
+        )
+        print(render_observables(observables))
     except Exception as exc:
         print(f"[jportal] {exc}", file=sys.stderr)
         return 1

@@ -12,20 +12,21 @@ _jptrel_DIR="$(cd "$(dirname "$_jptrel_SRC")" && pwd)"
 _jptrel_usage() {
   cat <<'EOF'
 Usage:
-  jptrel <version>
+  jptrel <version> [-v|--verbose]
 
 Examples:
   source ./jptrel
   jptrel 0.1.1
+  jptrel 0.1.1 -v
 
 Notes:
-  jptrel publishes Jarvis-Portal to PyPI, refreshes the local editable install
+  jptrel publishes Jarvis-HEP-Portal to PyPI, refreshes the local editable install
   (pip install -e .), and verifies the installed package and built-in adapters.
 EOF
 }
 
 _jptrel_install_editable() {
-  python3 -m pip uninstall -y Jarvis-Portal jarvis-portal jarvis_portal >/dev/null 2>&1 || true
+  python3 -m pip uninstall -y Jarvis-HEP-Portal jarvis-hep-portal Jarvis-Portal jarvis-portal jarvis_portal >/dev/null 2>&1 || true
 
   # Defensive cleanup for stale metadata from previous local installs.
   # Multiple leftover dist-info folders can make importlib.metadata report an
@@ -42,10 +43,16 @@ if purelib and os.path.isdir(purelib):
     patterns = [
         "jarvis_portal-*.dist-info",
         "Jarvis_Portal-*.dist-info",
+        "jarvis_hep_portal-*.dist-info",
+        "Jarvis_HEP_Portal-*.dist-info",
         "jarvis_portal*.egg-info",
         "Jarvis_Portal*.egg-info",
+        "jarvis_hep_portal*.egg-info",
+        "Jarvis_HEP_Portal*.egg-info",
         "jarvis_portal*.egg-link",
         "Jarvis_Portal*.egg-link",
+        "jarvis_hep_portal*.egg-link",
+        "Jarvis_HEP_Portal*.egg-link",
     ]
     for pat in patterns:
         for path in glob.glob(os.path.join(purelib, pat)):
@@ -79,7 +86,12 @@ if not purelib or not os.path.isdir(purelib):
     raise SystemExit(0)
 
 dist_infos = []
-for pat in ("jarvis_portal-*.dist-info", "Jarvis_Portal-*.dist-info"):
+for pat in (
+    "jarvis_portal-*.dist-info",
+    "Jarvis_Portal-*.dist-info",
+    "jarvis_hep_portal-*.dist-info",
+    "Jarvis_HEP_Portal-*.dist-info",
+):
     for path in glob.glob(os.path.join(purelib, pat)):
         base = os.path.basename(path)
         m = re.search(r"-(\d+(?:\.\d+)*)\.dist-info$", base)
@@ -96,8 +108,12 @@ for _ver, stale_path in dist_infos[1:]:
 for pat in (
     "jarvis_portal*.egg-info",
     "Jarvis_Portal*.egg-info",
+    "jarvis_hep_portal*.egg-info",
+    "Jarvis_HEP_Portal*.egg-info",
     "jarvis_portal*.egg-link",
     "Jarvis_Portal*.egg-link",
+    "jarvis_hep_portal*.egg-link",
+    "Jarvis_HEP_Portal*.egg-link",
 ):
     for path in glob.glob(os.path.join(purelib, pat)):
         if os.path.isdir(path):
@@ -124,6 +140,20 @@ for pattern in ("*.egg-info", "src/*.egg-info"):
     for matched in glob.glob(pattern):
         if os.path.isdir(matched):
             shutil.rmtree(matched, ignore_errors=True)
+PY
+}
+
+_jptrel_clean_local_junk() {
+  python3 - <<'PY'
+from __future__ import annotations
+from pathlib import Path
+
+for path in Path(".").rglob(".DS_Store"):
+    try:
+        path.unlink()
+        print(f"[jptrel] removed local junk file: {path}")
+    except OSError as exc:
+        print(f"[jptrel] WARNING: failed to remove {path}: {exc}")
 PY
 }
 
@@ -164,29 +194,70 @@ print(f"[jptrel] src/jarvis_portal/_version.py updated to {version}")
 PY
 }
 
+_jptrel_upload() {
+  local verbose="${1:-0}"
+  local version="${2:-}"
+
+  if [[ "$verbose" -eq 1 ]]; then
+    echo "[jptrel] Upload command: python3 -m twine upload -r pypi --verbose dist/*"
+    python3 -m twine upload -r pypi --verbose dist/*
+  else
+    echo "[jptrel] Upload command: python3 -m twine upload -r pypi dist/*"
+    python3 -m twine upload -r pypi dist/*
+  fi
+
+  local status=$?
+  if [[ "$status" -ne 0 ]]; then
+    if [[ "$verbose" -eq 1 ]]; then
+      cat >&2 <<'EOF'
+[jptrel] Upload failed.
+[jptrel] The verbose twine output above contains PyPI's exact rejection reason.
+[jptrel] Common 400 causes are a blocked/similar project name, an already-used
+[jptrel] version/file, or server-side metadata policy. If PyPI says the project
+[jptrel] name is too similar to an existing project, choose a less ambiguous
+[jptrel] package name in pyproject.toml and rerun jptrel with a fresh version.
+EOF
+    else
+      echo "[jptrel] Upload failed. Rerun with '-v' for PyPI's full rejection details:" >&2
+      echo "[jptrel]   jptrel ${version:-<version>} -v" >&2
+    fi
+    return "$status"
+  fi
+}
+
 _jptrel_verify_install() {
-  python3 - <<'PY'
+  local expected_version="$1"
+
+  python3 - <<'PY' "$expected_version"
 import importlib.metadata as m
+import sys
 from shutil import which
 
 import jarvis_portal
 from jarvis_portal import create_default_registry
 
-print("[jptrel] installed version:", m.version("Jarvis-Portal"))
-print("[jptrel] runtime version:", jarvis_portal.__version__)
+expected = sys.argv[1]
+installed = m.version("Jarvis-HEP-Portal")
+runtime = jarvis_portal.__version__
+print("[jptrel] installed version:", installed)
+print("[jptrel] runtime version:", runtime)
 print("[jptrel] jportal command:", which("jportal"))
 print("[jptrel] input formats:", ", ".join(create_default_registry().available_formats("input")))
 print("[jptrel] output formats:", ", ".join(create_default_registry().available_formats("output")))
+if installed != expected:
+    raise SystemExit(f"[jptrel] Installed version mismatch: expected {expected}, got {installed}")
+if runtime != expected:
+    raise SystemExit(f"[jptrel] Runtime version mismatch: expected {expected}, got {runtime}")
 
-# Show all discovered Jarvis-Portal distributions to catch metadata duplication.
+# Show all discovered Portal distributions to catch metadata duplication.
 matches = []
 for d in m.distributions():
     name = (d.metadata.get("Name") or "").lower()
-    if name in {"jarvis-portal", "jarvis_portal"}:
+    if name in {"jarvis-hep-portal", "jarvis_hep_portal", "jarvis-portal", "jarvis_portal"}:
         matches.append((d.metadata.get("Name"), d.version, str(d.locate_file(""))))
 
 if matches:
-    print("[jptrel] discovered Jarvis-Portal distributions:")
+    print("[jptrel] discovered Portal distributions:")
     for name, version, loc in matches:
         print(f"  - {name} {version} @ {loc}")
 PY
@@ -206,12 +277,21 @@ PY
   fi
 
   if [[ -z "$cli_cmd" ]]; then
-    echo "[jptrel] WARNING: jportal CLI not found in PATH after reinstall; skip CLI --version check." >&2
+    echo "[jptrel] WARNING: jportal CLI not found in PATH after reinstall; skip CLI smoke check." >&2
     return 0
   fi
 
-  "$cli_cmd" --version >/dev/null
-  echo "[jptrel] CLI --version check passed: $cli_cmd"
+  local smoke_dir smoke_yaml cli_output
+  smoke_dir="$(mktemp -d)"
+  smoke_yaml="$smoke_dir/jportal-smoke.yaml"
+  printf 'observables:\n  __jportal_version__: "%s"\n' "$expected_version" > "$smoke_yaml"
+  cli_output="$("$cli_cmd" "$smoke_yaml")"
+  rm -rf "$smoke_dir"
+  if [[ "$cli_output" != *"$expected_version"* ]]; then
+    echo "[jptrel] CLI smoke check failed: expected $expected_version, got: $cli_output" >&2
+    return 1
+  fi
+  echo "[jptrel] CLI smoke check passed: $cli_cmd"
 }
 
 jptrel() {
@@ -229,16 +309,25 @@ jptrel() {
     fi
 
     local version="$1"; shift || true
+    local upload_verbose=0
     if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
       echo "[jptrel] Invalid version: $version (expected X.Y.Z)" >&2
       exit 2
     fi
 
-    if [[ $# -gt 0 ]]; then
-      echo "[jptrel] jptrel accepts only a version argument." >&2
-      _jptrel_usage
-      exit 2
-    fi
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        -v|--verbose)
+          upload_verbose=1
+          ;;
+        *)
+          echo "[jptrel] Unknown argument: $1" >&2
+          _jptrel_usage
+          exit 2
+          ;;
+      esac
+      shift
+    done
 
     cd "$_jptrel_DIR"
     if [[ ! -f "pyproject.toml" ]]; then
@@ -248,6 +337,11 @@ jptrel() {
 
     echo "[jptrel] Release target version: $version"
     echo "[jptrel] Repository: pypi"
+    if [[ "$upload_verbose" -eq 1 ]]; then
+      echo "[jptrel] Upload verbosity: verbose"
+    else
+      echo "[jptrel] Upload verbosity: normal"
+    fi
     echo "[jptrel] Working directory: $(pwd)"
     echo "[jptrel] Python: $(python3 -V 2>/dev/null || true)"
 
@@ -256,6 +350,7 @@ jptrel() {
 
     echo "[jptrel] Step 2/5: clean build artifacts"
     _jptrel_clean_artifacts
+    _jptrel_clean_local_junk
     _jptrel_prune_installed_metadata
 
     echo "[jptrel] Step 3/5: build package"
@@ -263,12 +358,12 @@ jptrel() {
     python3 -m build
     python3 -m twine check dist/*
 
-    echo "[jptrel] Step 4/5: upload"
-    python3 -m twine upload -r pypi dist/*
-
-    echo "[jptrel] Step 5/5: local editable install/verify"
+    echo "[jptrel] Step 4/5: local editable install/verify"
     _jptrel_install_editable
-    _jptrel_verify_install
+    _jptrel_verify_install "$version"
+
+    echo "[jptrel] Step 5/5: upload"
+    _jptrel_upload "$upload_verbose" "$version"
 
     echo "[jptrel] Done."
   )

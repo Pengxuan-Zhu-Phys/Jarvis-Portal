@@ -21,7 +21,6 @@ Use lowercase directory names, for example:
 
 ```text
 examples/formats/json/
-examples/formats/file/
 examples/formats/slha/
 examples/formats/xslha/
 examples/formats/root/
@@ -34,9 +33,9 @@ examples/formats/yoda/
 
 `README.md` explains the format-specific adapter behavior, supported directions, optional dependencies, and known limitations.
 
-`jarvis-hep.yaml` shows the Jarvis-HEP-facing YAML shape. This file must stay aligned with Jarvis-HEP's current calculator IO configuration style. Jarvis-HEP remains responsible for parsing this YAML and translating it into Portal adapter specs.
+`jarvis-hep.yaml` shows the Jarvis-HEP-facing YAML shape. This file must stay aligned with Jarvis-HEP's current calculator IO configuration style.
 
-`adapter-spec.yaml` shows the lower-level spec shape that a Jarvis-Portal adapter receives directly. It should contain separate `write_input` and `read_output` examples when the adapter supports both directions.
+`adapter-spec.yaml` shows a compact Jarvis-HEP IO shape that `jportal file` can run directly. It must use `input` and `output` lists, not a second public YAML design.
 
 Sample files should be small, deterministic, and readable. They should exercise the fields shown in the YAML examples without requiring a full external HEP calculator.
 
@@ -45,6 +44,7 @@ Sample files should be small, deterministic, and readable. They should exercise 
 Every format should be independent:
 
 - adapter implementation in its own module or package area
+- built-in registration in `register_builtins()` or an entry point under `jarvishep.io`
 - tests in a dedicated test file or test class
 - example directory under `examples/formats/<format>/`
 - optional dependencies isolated to extras
@@ -90,26 +90,30 @@ Jarvis-Portal examples may include those fields only to document compatibility w
 
 ## Adapter Spec Alignment
 
-`adapter-spec.yaml` should document the direct adapter contract that can be used in unit tests. For example, JSON can show:
+`adapter-spec.yaml` should document the compact Jarvis-HEP IO contract that can be used in unit tests. For JSON, it intentionally keeps the Jarvis-HEP `input` and `output` field names:
 
 ```yaml
-write_input:
-  path: input.json
-  operations:
-    - name: x
-      value: 1.0
-    - name: nested
-      entry: settings.value
-      value: 2.0
+input:
+  - name: params
+    path: input.json
+    type: JSON
+    save: false
+    actions:
+      - type: Dump
+        variables:
+          - { name: "x" }
+          - { name: "nested", entry: "settings.value" }
 
-read_output:
-  path: output.json
-  variables:
-    - name: result
-      entry: observables.result
+output:
+  - name: observables
+    path: output.json
+    type: JSON
+    save: false
+    variables:
+      - { name: "result", entry: "observables.result" }
 ```
 
-This is not a replacement for Jarvis-HEP YAML. It is the format-adapter-level shape after Jarvis-HEP has resolved runtime semantics.
+This is not a replacement for full Jarvis-HEP task YAML. It is the selected file-spec shape after Jarvis-HEP or another caller has resolved workflow semantics.
 
 ## Adding A New Format
 
@@ -123,11 +127,12 @@ For every new format:
 6. Add `examples/formats/<format>/jarvis-hep.yaml`.
 7. Add `examples/formats/<format>/adapter-spec.yaml`.
 8. Add small input/output sample files.
-9. Update docs and README links if the format becomes user-facing.
+9. Add the format to `register_builtins()` or `jarvishep.io` entry points only after tests pass.
+10. Update docs and README links if the format becomes user-facing.
 
 ## Current Format Directories
 
 - [JSON](../../examples/formats/json/README.md)
-- [File](../../examples/formats/file/README.md)
-- [SLHA](../../examples/formats/slha/README.md)
-- [xSLHA](../../examples/formats/xslha/README.md)
+- [JSON usage](JSON_FORMAT.md)
+
+SLHA/xSLHA example directories may exist during development, but they are not currently exposed through the registry.

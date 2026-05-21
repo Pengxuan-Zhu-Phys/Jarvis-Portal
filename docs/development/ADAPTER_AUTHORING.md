@@ -30,7 +30,7 @@ async def read_output(
 
 `write_input` should create or update files needed by an external program. `read_output` should return a dictionary of values read from files.
 
-Each adapter should also have an independent example directory under `examples/formats/<format>/`. That directory documents both the Jarvis-HEP-facing YAML shape and the direct Jarvis-Portal adapter spec. See the [format catalog](FORMAT_CATALOG.md).
+Each adapter should also have an independent example directory under `examples/formats/<format>/`. That directory documents the Jarvis-HEP-facing YAML shape and the compact `input` / `output` IO shape accepted by `jportal file`. See the [format catalog](FORMAT_CATALOG.md).
 
 ## What Adapters May Do
 
@@ -84,28 +84,36 @@ register("Example", ExampleAdapter(), "both")
 
 Built-in adapters are registered by `jarvis_portal.builtins.register_builtins`.
 
-## Future Entry Point Discovery
+## Entry Point Discovery
 
-`pyproject.toml` declares the intended Python entry point group:
+`pyproject.toml` declares the Python entry point group used by Jarvis-HEP and third-party packages:
 
 ```toml
 [project.entry-points."jarvishep.io"]
 json = "jarvis_portal.adapters.json:JsonAdapter"
-file = "jarvis_portal.adapters.file:FileAdapter"
-slha = "jarvis_portal.adapters.slha:SLHAAdapter"
-xslha = "jarvis_portal.adapters.xslha:XSLHAAdapter"
 ```
 
-Automatic discovery is not currently implemented in `IORegistry`. A future discovery helper should:
+Only tested formats should be listed here. Adapter code may exist in the repository before it is exposed, but Jarvis-HEP will discover anything listed under this group.
 
-- read `importlib.metadata.entry_points(group="jarvishep.io")`
-- load each adapter class or factory
-- instantiate the adapter
-- register it under `adapter.format_name` and `adapter.direction`
-- skip or report failing optional adapters with clear diagnostics
-- avoid importing heavy optional dependencies until an adapter is actually used, where practical
+Jarvis-Portal exposes discovery helpers:
 
-Third-party packages should use the same entry point group when discovery is available.
+```python
+from jarvis_portal import create_entry_point_registry, discover_entry_points
+
+registry = create_entry_point_registry()
+```
+
+`create_entry_point_registry()` returns a fresh registry with built-ins plus installed adapter entry points from `jarvishep.io` whose entry point names are listed in `EXPOSED_FORMATS`. `discover_entry_points(registry)` loads entry points into an existing registry.
+
+`EXPOSED_FORMATS` is the public allow-list Jarvis-HEP should see. It is currently `{"json"}`. Add a format there only after its adapter behavior is tested.
+
+Discovery defaults to `on_error="warn"`: broken or stale entry points are skipped with a `RuntimeWarning` instead of preventing Jarvis-HEP from starting. Use `on_error="raise"` in strict tests.
+
+Development tools can pass `allowed_formats=None` to load every installed entry point, including hidden or experimental ones. Jarvis-HEP should use the default.
+
+Jarvis-HEP should use `create_entry_point_registry()` when it wants all IO formats provided by the installed `Jarvis-HEP-Portal` package without hard-coding format names. Keep Jarvis-HEP-owned formats such as `File` registered on the Jarvis-HEP side.
+
+Third-party packages should use the same entry point group.
 
 ## Example Adapter
 

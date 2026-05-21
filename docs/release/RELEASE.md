@@ -41,9 +41,10 @@ For the local PyPI release helper, source `jptrel` from the repository root and 
 ```bash
 source ./jptrel
 jptrel 0.1.1
+jptrel 0.1.1 -v
 ```
 
-This helper updates `pyproject.toml` and `src/jarvis_portal/_version.py`, cleans build artifacts, builds distributions, uploads them with `twine upload -r pypi`, reinstalls the package locally in editable mode, and verifies the installed package metadata and built-in adapters.
+This helper updates `pyproject.toml` and `src/jarvis_portal/_version.py`, cleans build artifacts, builds distributions, reinstalls the package locally in editable mode, verifies the installed package metadata, runtime version, CLI smoke run, and built-in adapters, then uploads with `twine upload -r pypi`. Use `-v` or `--verbose` to pass `--verbose` to the upload step.
 
 ## GitHub Release Process
 
@@ -77,7 +78,7 @@ Manual PyPI setup is still required before the workflow can publish.
 
 On PyPI:
 
-- create or claim the `Jarvis-Portal` project
+- create or claim the `Jarvis-HEP-Portal` project
 - configure a trusted publisher for the GitHub repository
 - match the workflow filename: `publish.yml`
 - match the environment name: `pypi`
@@ -97,15 +98,15 @@ No PyPI API token should be committed. Trusted Publishing should use GitHub OIDC
 After the publish workflow succeeds:
 
 ```bash
-python -m pip install --upgrade Jarvis-Portal
+python -m pip install --upgrade Jarvis-HEP-Portal
 python -c "import jarvis_portal; print(jarvis_portal.__version__)"
 ```
 
 Optionally verify extras in a fresh environment:
 
 ```bash
-python -m pip install "Jarvis-Portal[slha]"
-python -m pip install "Jarvis-Portal[xslha]"
+python -m pip install "Jarvis-HEP-Portal[slha]"
+python -m pip install "Jarvis-HEP-Portal[xslha]"
 ```
 
 Check:

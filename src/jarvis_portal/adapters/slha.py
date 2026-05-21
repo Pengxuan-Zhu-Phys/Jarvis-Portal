@@ -82,5 +82,5 @@ def _import_pyslha():
     try:
         import pyslha
     except ImportError as exc:
-        raise ImportError("SLHA support requires `pip install Jarvis-Portal[slha]`.") from exc
+        raise ImportError("SLHA support requires `pip install Jarvis-HEP-Portal[slha]`.") from exc
     return pyslha

@@ -35,7 +35,7 @@ This installs the package plus the current development tools declared in `pyproj
 
 ## Optional Extras
 
-Jarvis-Portal keeps HEP format dependencies optional so the JSON, File, and registry layers can be used without heavier format packages.
+Jarvis-Portal keeps HEP format dependencies optional so the JSON and registry layers can be used without heavier format packages. At the moment, only JSON is registered and exposed to Jarvis-HEP; optional formats remain hidden until their behavior is tested.
 
 Available extras:
 
@@ -53,12 +53,12 @@ python -m pip install -e ".[dev,all]"
 
 ## Working Without Optional HEP Dependencies
 
-Optional adapters import their dependencies only when used:
+Optional adapter code imports its dependencies only when used directly:
 
 - `SLHAAdapter` requires `pyslha` and raises an installation hint if it is missing.
 - `XSLHAAdapter` requires `xslha` and raises an installation hint if it is missing.
 
-You can still run the core registry, JSON adapter, and File adapter tests with only:
+You can run the exposed registry and JSON adapter tests with only:
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -118,8 +118,10 @@ twine check dist/*
 ```bash
 python -m pip install -e ".[dev]"
 python -m pip install -e ".[dev,all]"
-jportal --version
-jportal input.yaml
+jportal -v
+jportal file
+jportal man
+jportal man json
 python -m pytest
 ruff check .
 python -m build
@@ -131,12 +133,12 @@ twine check dist/*
 The package installs a small command line tool:
 
 ```bash
-jportal input.yaml
+jportal file
 ```
 
-By default it parses the YAML file and prints the resulting Python dictionary to stdout. Use `--json` for JSON output, `-o/--output` to write to a file, `--formats` to list built-in adapter formats, and `-v/--version` to print the installed version.
+`jportal file` is the only supported business CLI shape. It prints the observable dictionary itself as JSON. Utility exceptions are `jportal man`, `jportal man <format>`, `-h/--help`, and `-v/--version`. Do not add other CLI options or alternate modes without an explicit design decision.
 
-The CLI is intentionally an inspection and utility entry point. It does not parse Jarvis-HEP YAML IO semantics, expand runtime markers, evaluate expressions, or run adapters.
+The CLI is intentionally narrow. It does not parse full Jarvis-HEP workflow cards, expand runtime markers, evaluate expressions, or run calculators.
 
 ## Jarvis-HEP Integration Boundary
 
@@ -144,4 +146,4 @@ Jarvis-Portal is intended to be called by Jarvis-HEP and other Jarvis runtime co
 
 Jarvis-HEP owns YAML IO block parsing, runtime path markers, expression evaluation, sample context construction, save/copy/archive policy, logging integration, IO manager integration, and deciding which variables are read or written.
 
-Jarvis-Portal owns format-specific behavior, adapter registration and lookup, JSON nested entry behavior, SLHA/xSLHA structured record handling, and future format-specific HEP IO logic.
+Jarvis-Portal owns format-specific behavior, adapter registration and lookup, JSON nested entry behavior, and future format-specific HEP IO logic. Untested format code must not be registered or exposed to Jarvis-HEP.

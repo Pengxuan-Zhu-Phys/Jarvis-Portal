@@ -7,10 +7,11 @@ Jarvis-Portal is the IO adapter and registry package used by the Jarvis ecosyste
 ## Layout
 
 - [Development](development/DEVELOPMENT.md): local setup, editable installs, optional extras, test commands, and build commands.
-- [CLI](development/CLI.md): `jportal` command behavior, options, output formats, and boundaries.
+- [CLI](development/CLI.md): direct `jportal file`, `jportal man`, `-h`, and `-v` behavior and boundaries.
 - [Architecture](design/ARCHITECTURE.md): package goals, ownership boundary with Jarvis-HEP, registry design, context objects, adapters, built-ins, and non-goals.
 - [Adapter Authoring](development/ADAPTER_AUTHORING.md): how to implement and register new format adapters.
 - [Format Catalog](development/FORMAT_CATALOG.md): per-format example directory structure and Jarvis-HEP YAML alignment rules.
+- [JSON Format Usage](development/JSON_FORMAT.md): Jarvis-HEP-compatible JSON input/output file-spec usage.
 - [Testing](development/TESTING.md): test layout, required adapter coverage, optional dependency handling, async test style, and CI expectations.
 - [Release](release/RELEASE.md): version bump, build, GitHub release, PyPI Trusted Publishing, manual settings, and post-release checks.
 

@@ -10,7 +10,7 @@ Supported directions:
 Dependency:
 
 ```bash
-pip install "Jarvis-Portal[slha]"
+pip install "Jarvis-HEP-Portal[slha]"
 ```
 
 Behavior:

@@ -1,19 +1,25 @@
-# Direct Jarvis-Portal adapter spec example.
-# Values are already resolved by the caller.
-write_input:
-  path: "input.json"
-  operations:
-    - name: x
-      value: 1.0
-    - name: y
-      value: 2.0
-    - name: mass
-      entry: "model.mass"
-      value: 2.0
+# Jarvis-HEP IO YAML shape accepted by jportal.
+observables:
+  x: 1.5
+  y: 10.0
 
-read_output:
-  path: "output.json"
-  variables:
-    - name: z
-    - name: likelihood
-      entry: "fit.loglike"
+input:
+  - name: params
+    path: "input.json"
+    type: JSON
+    save: false
+    actions:
+      - type: Dump
+        variables:
+          - { name: "xx", expression: "x * Pi" }
+          - { name: "yy", expression: "y * Pi" }
+          - { name: "cx", expression: "(x + y) * Pi", entry: "test.config.x" }
+
+output:
+  - name: observables
+    path: "output.json"
+    type: JSON
+    save: false
+    variables:
+      - { name: "z" }
+      - { name: "likelihood", entry: "fit.loglike" }
