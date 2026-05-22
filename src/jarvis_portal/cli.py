@@ -119,12 +119,18 @@ def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str
                 f"  output: {', '.join(registry.available_formats('output'))}",
                 "",
                 "Format manuals:",
+                "  csv",
+                "  dat",
                 "  json",
+                "  tsv",
                 "",
                 "Usage:",
                 "  jportal file",
                 "  jportal man",
                 "  jportal man json",
+                "  jportal man csv",
+                "  jportal man tsv",
+                "  jportal man dat",
                 "  jportal -h",
                 "  jportal -v",
             ]
@@ -191,7 +197,85 @@ def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str
             ]
         )
 
+    if normalized in {"csv", "tsv", "dat"}:
+        return _render_table_manual(normalized, dim_markers=dim_markers)
+
     raise ValueError(f"Unknown manual topic: {topic}")
+
+
+def _render_table_manual(topic: str, *, dim_markers: bool = False) -> str:
+    format_name = topic.upper()
+    extension = topic
+    separator = {
+        "csv": "comma-separated",
+        "tsv": "tab-separated",
+        "dat": "whitespace-separated",
+    }[topic]
+    header_value = "false" if topic == "dat" else "true"
+    input_columns_line = 'columns: [mass, coupling, config]' if topic == "dat" else None
+    output_columns_line = 'columns: [chi2, mass, fit_loglike]' if topic == "dat" else None
+    comment_line = 'comment: "#"' if topic == "dat" else None
+
+    d1 = _cdots(1, dim=dim_markers)
+    d2 = _cdots(2, dim=dim_markers)
+    d4 = _cdots(4, dim=dim_markers)
+    d6 = _cdots(6, dim=dim_markers)
+    d8 = _cdots(8, dim=dim_markers)
+    d10 = _cdots(10, dim=dim_markers)
+    input_extra = []
+    output_extra = []
+    if input_columns_line is not None:
+        input_extra.append(f"  │ {d4}{input_columns_line}")
+    if output_columns_line is not None:
+        output_extra.append(f"  │ {d4}{output_columns_line}")
+    if comment_line is not None:
+        input_extra.append(f"  │ {d4}{comment_line}")
+        output_extra.append(f"  │ {d4}{comment_line}")
+
+    return "\n".join(
+        [
+            f"{format_name} format manual",
+            "",
+            f"Table type: {separator}",
+            "",
+            "YAML shape:",
+            "  ┌─ YAML ─────────────────────────────",
+            "  │ observables:",
+            f"  │ {d2}x: 1.0",
+            f"  │ {d2}y: 2.0",
+            "  │",
+            "  │ input:",
+            f"  │ {d2}- name: params",
+            f"  │ {d4}path: input.{extension}",
+            f"  │ {d4}type: {format_name}",
+            f"  │ {d4}header: {header_value}",
+            *(input_extra if topic == "dat" else []),
+            f"  │ {d4}actions:",
+            f"  │ {d6}- type: Dump",
+            f"  │ {d8}variables:",
+            f"  │ {d10}- {{ name: \"var_mass\", expression: \"x * Pi\", column: \"mass\" }}",
+            f"  │ {d10}- {{ name: \"var_config\", expression: \"(x + y) * Pi\", column: \"config\" }}",
+            "  │",
+            "  │ output:",
+            f"  │ {d2}- name: observables",
+            f"  │ {d4}path: output.{extension}",
+            f"  │ {d4}type: {format_name}",
+            f"  │ {d4}header: {header_value}",
+            *(output_extra if topic == "dat" else []),
+            f"  │ {d4}variables:",
+            f"  │ {d6}- {{ name: \"chi2\", row: 0 }}",
+            f"  │ {d6}- {{ name: \"best_mass\", column: \"mass\", row: 0 }}",
+            f"  │ {d6}- {{ name: \"loglike\", column: \"fit_loglike\" }}",
+            "  └───────────────────────────────────",
+            "",
+            "Note:",
+            f"  {d1} means one indentation space. Replace {d1} with spaces before use.",
+            "  Input variables must specify column explicitly; name is only an identifier.",
+            "  Output column defaults to name when column is omitted.",
+            "  Omitting row reads the whole column; one-cell columns are returned as scalars.",
+            "  Missing output columns or rows are omitted from the observable dictionary.",
+        ]
+    )
 
 
 def _merge_observables(target: dict[str, Any], source: dict[str, Any]) -> None:

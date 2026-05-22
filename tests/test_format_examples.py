@@ -6,7 +6,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 FORMAT_ROOT = ROOT / "examples" / "formats"
-FORMAT_DIRS = ("json", "slha", "xslha")
+FORMAT_DIRS = ("json", "slha", "xslha", "csv", "tsv", "dat")
 
 
 def test_format_example_directories_have_required_files():

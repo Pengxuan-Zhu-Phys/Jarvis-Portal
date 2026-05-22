@@ -125,6 +125,9 @@ def test_cli_man_lists_formats(capsys):
     assert "input:" in captured.out
     assert "output:" in captured.out
     assert "json" in captured.out
+    assert "csv" in captured.out
+    assert "tsv" in captured.out
+    assert "dat" in captured.out
 
 
 def test_cli_man_json_prints_manual(capsys):
@@ -151,6 +154,17 @@ def test_cli_man_json_can_dim_cdot_markers():
 
     assert f'{DIM}··········{RESET}- {{ name: "xx", expression: "x * Pi" }}' in rendered
     assert "cdot" not in rendered
+
+
+@pytest.mark.parametrize("topic", ["csv", "tsv", "dat"])
+def test_cli_man_table_formats_print_manual(topic, capsys):
+    assert main(["man", topic]) == 0
+
+    captured = capsys.readouterr()
+    assert captured.err == ""
+    assert f"{topic.upper()} format manual" in captured.out
+    assert "column" in captured.out
+    assert "Missing output columns or rows are omitted" in captured.out
 
 
 def test_runtime_expression_evaluator_supports_pi():

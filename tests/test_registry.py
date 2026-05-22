@@ -43,6 +43,9 @@ def test_default_registry_contains_builtin_formats():
     registry = create_default_registry()
 
     assert "JSON" in registry.available_formats("input")
+    assert "CSV" in registry.available_formats("input")
+    assert "TSV" in registry.available_formats("input")
+    assert "DAT" in registry.available_formats("output")
     assert "SLHA" not in registry.available_formats("input")
     assert "xSLHA" not in registry.available_formats("output")
     assert "File" not in registry.available_formats("input")
@@ -54,7 +57,7 @@ def test_registry_lists_adapters_once():
 
     names = [adapter.format_name for adapter in registry.adapters()]
 
-    assert names == ["JSON"]
+    assert names == ["CSV", "DAT", "JSON", "TSV"]
 
 
 def test_entry_point_registry_loads_adapter_classes(monkeypatch):

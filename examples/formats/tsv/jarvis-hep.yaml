@@ -1,0 +1,36 @@
+# Jarvis-HEP-facing calculator IO example.
+# Jarvis-HEP parses this shape and translates it into Jarvis-Portal adapter specs.
+Calculators:
+  make_paraller: 1
+  Modules:
+    - name: TsvExample
+      required_modules: []
+      clone_shadow: false
+      installation: []
+      initialization: []
+      execution:
+        path: "&J/calculators/tsv_example"
+        commands:
+          - "python run_tsv_example.py"
+        input:
+          - name: params
+            path: "input.tsv"
+            type: TSV
+            header: true
+            save: true
+            actions:
+              - type: Dump
+                variables:
+                  - { name: "var_mass",     expression: "x",   column: "mass" }
+                  - { name: "var_coupling", expression: "y",   column: "coupling" }
+                  - { name: "var_config",   expression: "x+y", column: "config" }
+        output:
+          - name: observables
+            path: "output.tsv"
+            type: TSV
+            header: true
+            save: false
+            variables:
+              - { name: "chi2", row: 0 }
+              - { name: "best_mass", column: "mass", row: 0 }
+              - { name: "loglike", column: "fit_loglike" }

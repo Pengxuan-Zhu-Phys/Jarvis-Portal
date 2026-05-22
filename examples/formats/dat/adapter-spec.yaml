@@ -1,0 +1,32 @@
+# Jarvis-HEP IO YAML shape accepted by jportal.
+observables:
+  x: 1.5
+  y: 10.0
+
+input:
+  - name: params
+    path: "input.dat"
+    type: DAT
+    header: false
+    columns: [mass, coupling, config]
+    comment: "#"
+    save: false
+    actions:
+      - type: Dump
+        variables:
+          - { name: "var_mass",     expression: "x * Pi",   column: "mass" }
+          - { name: "var_coupling", expression: "y * Pi",   column: "coupling" }
+          - { name: "var_config",   expression: "(x+y)*Pi", column: "config" }
+
+output:
+  - name: observables
+    path: "output.dat"
+    type: DAT
+    header: false
+    columns: [chi2, mass, fit_loglike]
+    comment: "#"
+    save: false
+    variables:
+      - { name: "chi2", row: 0 }
+      - { name: "best_mass", column: "mass", row: 0 }
+      - { name: "loglike", column: "fit_loglike" }
