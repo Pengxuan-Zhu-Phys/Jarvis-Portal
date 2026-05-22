@@ -180,16 +180,7 @@ pyproject.write_text(updated, encoding="utf-8")
 print(f"[jptrel] pyproject.toml updated to {version}")
 
 version_file = Path("src/jarvis_portal/_version.py")
-text = version_file.read_text(encoding="utf-8")
-updated, n = re.subn(
-    r'(?m)^__version__\s*=\s*"[^"]+"$',
-    f'__version__ = "{version}"',
-    text,
-    count=1,
-)
-if n != 1:
-    raise SystemExit("[jptrel] Failed to locate __version__ in src/jarvis_portal/_version.py")
-version_file.write_text(updated, encoding="utf-8")
+version_file.write_text(f'__version__ = "{version}"\n', encoding="utf-8")
 print(f"[jptrel] src/jarvis_portal/_version.py updated to {version}")
 PY
 }
