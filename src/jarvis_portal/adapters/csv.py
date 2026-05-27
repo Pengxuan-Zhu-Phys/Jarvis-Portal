@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import csv
+from collections.abc import Iterable
 from io import StringIO
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
 from jarvis_portal.context import IOContext
 

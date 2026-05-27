@@ -5,8 +5,9 @@ import json
 import math
 import operator
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Sequence
+from typing import Any
 
 import yaml
 
@@ -163,7 +164,10 @@ def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str
                 f"  │ {d8}variables:",
                 f"  │ {d10}- {{ name: \"xx\", expression: \"x * Pi\" }}",
                 f"  │ {d10}- {{ name: \"yy\", expression: \"y * Pi\" }}",
-                f"  │ {d10}- {{ name: \"cx\", expression: \"(x + y) * Pi\", entry: \"test.config.x\" }}",
+                (
+                    f"  │ {d10}- {{ name: \"cx\", expression: \"(x + y) * Pi\", "
+                    'entry: "test.config.x" }'
+                ),
                 "  │",
                 "  │ output:",
                 f"  │ {d2}- name: observables",
@@ -254,7 +258,10 @@ def _render_table_manual(topic: str, *, dim_markers: bool = False) -> str:
             f"  │ {d6}- type: Dump",
             f"  │ {d8}variables:",
             f"  │ {d10}- {{ name: \"var_mass\", expression: \"x * Pi\", column: \"mass\" }}",
-            f"  │ {d10}- {{ name: \"var_config\", expression: \"(x + y) * Pi\", column: \"config\" }}",
+            (
+                f"  │ {d10}- {{ name: \"var_config\", expression: \"(x + y) * Pi\", "
+                'column: "config" }'
+            ),
             "  │",
             "  │ output:",
             f"  │ {d2}- name: observables",

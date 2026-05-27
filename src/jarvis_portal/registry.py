@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from importlib import metadata
 import warnings
-from typing import Any, Iterable, Literal, Protocol
+from collections.abc import Iterable
+from importlib import metadata
+from typing import Any, Literal, Protocol
 
 from jarvis_portal.context import IOContext
 

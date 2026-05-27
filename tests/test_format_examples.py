@@ -3,7 +3,6 @@ from pathlib import Path
 
 import yaml
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FORMAT_ROOT = ROOT / "examples" / "formats"
 FORMAT_DIRS = ("json", "slha", "xslha", "csv", "tsv", "dat")
@@ -35,7 +34,9 @@ def test_json_sample_files_are_valid_json():
 
 def test_jarvis_hep_examples_use_current_calculator_io_shape():
     for name in FORMAT_DIRS:
-        payload = yaml.safe_load((FORMAT_ROOT / name / "jarvis-hep.yaml").read_text(encoding="utf-8"))
+        payload = yaml.safe_load(
+            (FORMAT_ROOT / name / "jarvis-hep.yaml").read_text(encoding="utf-8")
+        )
         modules = payload["Calculators"]["Modules"]
         assert isinstance(modules, list) and modules, name
         execution = modules[0]["execution"]
