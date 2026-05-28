@@ -145,7 +145,8 @@ def _operation_from_variable(
 def _evaluate_expression(context: IOContext, expression: str, data: dict[str, Any]) -> Any:
     if context.evaluate_expression is None:
         raise ValueError(
-            "Wolfram input variable uses 'expression', but IOContext.evaluate_expression is not set."
+            "Wolfram input variable uses 'expression', but "
+            "IOContext.evaluate_expression is not set."
         )
     return context.evaluate_expression(expression, data)
 

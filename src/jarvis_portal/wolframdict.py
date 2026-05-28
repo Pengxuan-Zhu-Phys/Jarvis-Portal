@@ -5,7 +5,6 @@ import re
 from dataclasses import dataclass
 from typing import Any, TextIO
 
-
 _NUMBER_RE = re.compile(
     r"[+-]?(?:(?:\d+(?:\.\d*)?)|(?:\.\d+))(?:\*\^[+-]?\d+|[eE][+-]?\d+)?"
 )
