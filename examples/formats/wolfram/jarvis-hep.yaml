@@ -1,0 +1,36 @@
+# Jarvis-HEP-facing calculator IO example.
+# Jarvis-HEP parses this shape and translates it into Jarvis-Portal adapter specs.
+Calculators:
+  make_paraller: 1
+  Modules:
+    - name: WolframExample
+      required_modules: []
+      clone_shadow: false
+      installation: []
+      initialization: []
+      execution:
+        path: "&J/calculators/wolfram_example"
+        commands:
+          - "wolframscript -file run_wolfram_example.wl"
+        input:
+          - name: params
+            path: "input.wl"
+            type: Wolfram
+            save: true
+            actions:
+              - type: Dump
+                variables:
+                  - { name: "HiggsMass", entry: "SMParameters.HiggsMass" }
+                  - { name: "mb", entry: "SMParameters.mb" }
+                  - { name: "alpha_s", entry: "SMParameters.alpha_s" }
+                  - { name: "BR_bb", entry: "BranchingFractions.bb" }
+        output:
+          - name: observables
+            path: "output.wl"
+            type: Wolfram
+            save: false
+            variables:
+              - { name: "LinearEntropy" }
+              - { name: "BRSum", entry: "BranchingFractionSum" }
+              - { name: "BR_bb", entry: "Channels.0.BR" }
+              - { name: "EntropyTerm_WW", entry: "Channels.2.EntropyTerm" }

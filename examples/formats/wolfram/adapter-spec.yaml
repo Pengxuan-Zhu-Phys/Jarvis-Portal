@@ -1,0 +1,29 @@
+# Jarvis-HEP IO YAML shape accepted by jportal.
+observables:
+  HiggsMass: 125.25
+  BR_bb: 0.57538677
+
+input:
+  - name: params
+    path: "input.wl"
+    type: Wolfram
+    save: false
+    actions:
+      - type: Dump
+        variables:
+          - { name: "HiggsMass", entry: "SMParameters.HiggsMass" }
+          - { name: "alpha_s", entry: "SMParameters.alpha_s" }
+          - { name: "BR_bb", expression: "BR_bb", entry: "BranchingFractions.bb" }
+
+output:
+  - name: observables
+    path: "output.wl"
+    type: Wolfram
+    save: false
+    variables:
+      - { name: "LinearEntropy" }
+      - { name: "BRSum", entry: "BranchingFractionSum" }
+      - { name: "BR_bb", entry: "Channels.0.BR" }
+      - { name: "EntropyTerm_WW", entry: "Channels.2.EntropyTerm" }
+      - { name: "SmallValue" }
+      - { name: "Converged" }

@@ -124,6 +124,7 @@ def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str
                 "  dat",
                 "  json",
                 "  tsv",
+                "  wolfram",
                 "",
                 "Usage:",
                 "  jportal file",
@@ -132,6 +133,7 @@ def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str
                 "  jportal man csv",
                 "  jportal man tsv",
                 "  jportal man dat",
+                "  jportal man wolfram",
                 "  jportal -h",
                 "  jportal -v",
             ]
@@ -203,6 +205,61 @@ def render_manual(topic: str | None = None, *, dim_markers: bool = False) -> str
 
     if normalized in {"csv", "tsv", "dat"}:
         return _render_table_manual(normalized, dim_markers=dim_markers)
+
+    if normalized == "wolfram":
+        d1 = _cdots(1, dim=dim_markers)
+        d2 = _cdots(2, dim=dim_markers)
+        d4 = _cdots(4, dim=dim_markers)
+        d6 = _cdots(6, dim=dim_markers)
+        d8 = _cdots(8, dim=dim_markers)
+        d10 = _cdots(10, dim=dim_markers)
+        return "\n".join(
+            [
+                "Wolfram format manual",
+                "",
+                "File type: Wolfram Language Association (.wl)",
+                "",
+                "YAML shape:",
+                "  ┌─ YAML ─────────────────────────────",
+                "  │ observables:",
+                f"  │ {d2}x: 1.0",
+                f"  │ {d2}y: 2.0",
+                "  │",
+                "  │ input:",
+                f"  │ {d2}- name: params",
+                f"  │ {d4}path: input.wl",
+                f"  │ {d4}type: Wolfram",
+                f"  │ {d4}actions:",
+                f"  │ {d6}- type: Dump",
+                f"  │ {d8}variables:",
+                f"  │ {d10}- {{ name: \"xx\", expression: \"x * Pi\" }}",
+                f"  │ {d10}- {{ name: \"mass\", entry: \"SMParameters.HiggsMass\" }}",
+                (
+                    f"  │ {d10}- {{ name: \"bb\", expression: \"x / y\", "
+                    'entry: "BranchingFractions.bb" }'
+                ),
+                "  │",
+                "  │ output:",
+                f"  │ {d2}- name: observables",
+                f"  │ {d4}path: output.wl",
+                f"  │ {d4}type: Wolfram",
+                f"  │ {d4}variables:",
+                f"  │ {d6}- {{ name: \"entropy\", entry: \"LinearEntropy\" }}",
+                f"  │ {d6}- {{ name: \"BR_bb\", entry: \"Channels.0.BR\" }}",
+                "  └───────────────────────────────────",
+                "",
+                "Note:",
+                f"  {d1} means one indentation space. Replace {d1} with spaces before use.",
+                "  Wolfram entries use the same dotted paths as JSON.",
+                "  Numeric path parts index lists only when the current value is a list.",
+                "",
+                "Observables contract:",
+                "  Returns the flat observable dictionary directly.",
+                "  Missing output entries return null in the printed JSON.",
+                "  Input variables with expression return their evaluated name: value items.",
+                "  A file spec name is returned only when save: true.",
+            ]
+        )
 
     raise ValueError(f"Unknown manual topic: {topic}")
 

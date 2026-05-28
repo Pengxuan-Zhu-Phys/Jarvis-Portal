@@ -3,9 +3,11 @@ from pathlib import Path
 
 import yaml
 
+from jarvis_portal import wolframdict
+
 ROOT = Path(__file__).resolve().parents[1]
 FORMAT_ROOT = ROOT / "examples" / "formats"
-FORMAT_DIRS = ("json", "slha", "xslha", "csv", "tsv", "dat")
+FORMAT_DIRS = ("json", "slha", "xslha", "csv", "tsv", "dat", "wolfram")
 
 
 def test_format_example_directories_have_required_files():
@@ -29,6 +31,13 @@ def test_json_sample_files_are_valid_json():
     directory = FORMAT_ROOT / "json"
     for filename in ("input.json", "output.json"):
         payload = json.loads((directory / filename).read_text(encoding="utf-8"))
+        assert isinstance(payload, dict), filename
+
+
+def test_wolfram_sample_files_are_valid_associations():
+    directory = FORMAT_ROOT / "wolfram"
+    for filename in ("input.wl", "output.wl"):
+        payload = wolframdict.loads((directory / filename).read_text(encoding="utf-8"))
         assert isinstance(payload, dict), filename
 
 

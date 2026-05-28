@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Jarvis-HEP-Portal"
-version = "1.2.1"
+version = "1.3.0"
 description = "IO adapter registry and format backends for the Jarvis ecosystem"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -50,6 +50,7 @@ json = "jarvis_portal.adapters.json:JsonAdapter"
 csv = "jarvis_portal.adapters.csv:CsvAdapter"
 tsv = "jarvis_portal.adapters.tsv:TsvAdapter"
 dat = "jarvis_portal.adapters.dat:DatAdapter"
+wolfram = "jarvis_portal.adapters.wolfram:WolframAdapter"
 
 [project.scripts]
 jportal = "jarvis_portal.cli:main"

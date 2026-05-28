@@ -1,3 +1,4 @@
+from jarvis_portal import wolframdict
 from jarvis_portal._version import __version__
 from jarvis_portal.context import IOContext
 from jarvis_portal.registry import (
@@ -28,4 +29,5 @@ __all__ = [
     "discover_entry_points",
     "get",
     "register",
+    "wolframdict",
 ]

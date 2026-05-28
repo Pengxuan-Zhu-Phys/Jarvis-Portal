@@ -9,7 +9,7 @@ from jarvis_portal.context import IOContext
 
 Direction = Literal["input", "output", "both"]
 ENTRY_POINT_GROUP = "jarvishep.io"
-EXPOSED_FORMATS = frozenset({"json", "csv", "tsv", "dat"})
+EXPOSED_FORMATS = frozenset({"json", "csv", "tsv", "dat", "wolfram"})
 
 
 class MissingAdapterError(ValueError):
